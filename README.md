@@ -20,7 +20,7 @@ The project is designed around the core fraud-detection workflow:
 
 ## Architecture
 
-FraudPulse is structured as a reproducible analytics system rather than a notebook-only experiment. The design separates data preparation, modeling, artifact generation, and presentation so the same project can support exploration, evaluation, and demonstration.
+FraudPulse is structured as a reproducible Python analytics system. The design separates data preparation, modeling, artifact generation, and presentation so the same project can support exploration, evaluation, and demonstration.
 
 ### System Flow
 
@@ -65,7 +65,6 @@ Raw Data
 FraudPulse/
 |-- .github/workflows/        CI configuration
 |-- data/                     Local datasets only, ignored by git
-|-- notebooks/                Original exploration notebooks
 |-- plots/                    Legacy plot outputs from earlier work
 |-- src/
 |   |-- __init__.py
@@ -294,4 +293,4 @@ Current scope:
 - Task 2: Implemented in a reproducible training pipeline
 - Task 3: Implemented with SHAP-driven explainability outputs
 
-FraudPulse is now structured as a runnable project instead of a notebook-only repository.
+FraudPulse is now structured as a runnable Python project.
