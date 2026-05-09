@@ -1,80 +1,93 @@
-# src/data_cleaning.py
-import pandas as pd
+from __future__ import annotations
+
 import numpy as np
+import pandas as pd
+
+
+FRAUD_TARGET = "class"
+CREDIT_TARGET = "Class"
+
 
 class DataCleaner:
-    """Class to handle data cleaning tasks for fraud detection datasets."""
-    
+    """Utility methods for consistent dataset preparation."""
+
     @staticmethod
-    def drop_missing_and_duplicates(df):
-        """
-        Remove missing values and duplicates from the dataset.
-        
-        Args:
-            df (pd.DataFrame): Input DataFrame.
-        
-        Returns:
-            pd.DataFrame: Cleaned DataFrame.
-        """
-        # Drop rows with missing values to ensure data integrity
-        df_cleaned = df.dropna().copy()
-        # Remove duplicates to prevent bias in fraud detection
-        df_cleaned = df_cleaned.drop_duplicates()
-        print(f"Shape after cleaning: {df_cleaned.shape}")
-        return df_cleaned
-    
+    def _copy_frame(df: pd.DataFrame) -> pd.DataFrame:
+        frame = df.copy()
+        frame.columns = [str(column).strip() for column in frame.columns]
+        return frame
+
     @staticmethod
-    def convert_timestamps(df, timestamp_cols):
-        """
-        Convert specified columns to datetime format.
-        
-        Args:
-            df (pd.DataFrame): Input DataFrame.
-            timestamp_cols (list): Columns to convert to datetime.
-        
-        Returns:
-            pd.DataFrame: DataFrame with converted timestamps.
-        """
-        for col in timestamp_cols:
-            df[col] = pd.to_datetime(df[col])
-        print(f"Converted {timestamp_cols} to datetime")
-        return df
-    
+    def drop_duplicates(df: pd.DataFrame) -> pd.DataFrame:
+        """Remove duplicated rows while preserving the original order."""
+        return df.drop_duplicates().reset_index(drop=True)
+
     @staticmethod
-    def convert_ip_columns(df, ip_cols):
-        """
-        Convert IP address columns to integer.
-        
-        Args:
-            df (pd.DataFrame): Input DataFrame.
-            ip_cols (list): IP address column names.
-        
-        Returns:
-            pd.DataFrame: DataFrame with converted IP columns.
-        """
-        for col in ip_cols:
-            df[col] = df[col].astype(int)
-        print(f"Converted {ip_cols} to integer")
-        return df
-    
+    def convert_timestamps(df: pd.DataFrame, timestamp_cols: list[str]) -> pd.DataFrame:
+        """Convert timestamp columns to pandas datetime."""
+        frame = df.copy()
+        for column in timestamp_cols:
+            frame[column] = pd.to_datetime(frame[column], errors="coerce")
+        return frame
+
     @staticmethod
-    def map_ip_to_country(df, ip_col, ip_mapping):
-        """
-        Map IP addresses to countries using vectorized operation.
-        
-        Args:
-            df (pd.DataFrame): Input DataFrame with IP addresses.
-            ip_col (str): IP address column name.
-            ip_mapping (pd.DataFrame): IP-to-country mapping DataFrame.
-        
-        Returns:
-            pd.DataFrame: DataFrame with new 'country' column.
-        """
-        def find_country(ip):
-            match = ip_mapping[(ip_mapping['lower_bound_ip_address'] <= ip) & 
-                              (ip_mapping['upper_bound_ip_address'] >= ip)]
-            return match.iloc[0]['country'] if not match.empty else 'Other'
-        
-        df['country'] = df[ip_col].apply(find_country)
-        print(f"Unique countries mapped: {df['country'].nunique()}")
-        return df
+    def convert_ip_columns(df: pd.DataFrame, ip_cols: list[str]) -> pd.DataFrame:
+        """Convert IP address columns to integer values compatible with joins."""
+        frame = df.copy()
+        max_ipv4 = np.iinfo(np.uint32).max
+        for column in ip_cols:
+            numeric = pd.to_numeric(frame[column], errors="coerce")
+            numeric = numeric.fillna(0).clip(lower=0, upper=max_ipv4)
+            frame[column] = np.floor(numeric).astype(np.int64)
+        return frame
+
+    @staticmethod
+    def prepare_fraud_data(df: pd.DataFrame) -> pd.DataFrame:
+        """Clean the e-commerce fraud dataset and keep it analysis-ready."""
+        frame = DataCleaner._copy_frame(df)
+        frame = DataCleaner.drop_duplicates(frame)
+        frame = DataCleaner.convert_timestamps(frame, ["signup_time", "purchase_time"])
+
+        numeric_columns = ["user_id", "purchase_value", "age", "ip_address", FRAUD_TARGET]
+        for column in numeric_columns:
+            frame[column] = pd.to_numeric(frame[column], errors="coerce")
+
+        frame = DataCleaner.convert_ip_columns(frame, ["ip_address"])
+        frame[FRAUD_TARGET] = frame[FRAUD_TARGET].fillna(0).astype(int)
+
+        required_columns = ["signup_time", "purchase_time", "purchase_value", "age", "ip_address"]
+        frame = frame.dropna(subset=required_columns).reset_index(drop=True)
+        frame["device_id"] = frame["device_id"].fillna("UNKNOWN_DEVICE").astype(str)
+        frame["source"] = frame["source"].fillna("Unknown").astype(str)
+        frame["browser"] = frame["browser"].fillna("Unknown").astype(str)
+        frame["sex"] = frame["sex"].fillna("Unknown").astype(str)
+
+        return frame
+
+    @staticmethod
+    def prepare_ip_country_data(df: pd.DataFrame) -> pd.DataFrame:
+        """Clean and sort the IP-to-country mapping table."""
+        frame = DataCleaner._copy_frame(df)
+        frame = DataCleaner.drop_duplicates(frame)
+        for column in ["lower_bound_ip_address", "upper_bound_ip_address"]:
+            frame[column] = pd.to_numeric(frame[column], errors="coerce")
+        frame = frame.dropna(subset=["lower_bound_ip_address", "upper_bound_ip_address", "country"])
+        frame["lower_bound_ip_address"] = frame["lower_bound_ip_address"].astype(np.int64)
+        frame["upper_bound_ip_address"] = frame["upper_bound_ip_address"].astype(np.int64)
+        frame["country"] = frame["country"].astype(str)
+        return frame.sort_values("lower_bound_ip_address").reset_index(drop=True)
+
+    @staticmethod
+    def prepare_creditcard_data(df: pd.DataFrame) -> pd.DataFrame:
+        """Clean the credit-card fraud dataset."""
+        frame = DataCleaner._copy_frame(df)
+        frame = DataCleaner.drop_duplicates(frame)
+
+        for column in frame.columns:
+            frame[column] = pd.to_numeric(frame[column], errors="coerce")
+
+        frame = frame.dropna(subset=[CREDIT_TARGET]).reset_index(drop=True)
+        frame[CREDIT_TARGET] = frame[CREDIT_TARGET].astype(int)
+        frame = frame.fillna(frame.median(numeric_only=True))
+
+        return frame
