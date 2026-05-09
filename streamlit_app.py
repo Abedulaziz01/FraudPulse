@@ -15,6 +15,42 @@ from src.feature_engineering import FeatureEngineer
 st.set_page_config(page_title="FraudPulse Dashboard", layout="wide")
 
 
+ECOMMERCE_SOURCE_FEATURES = [
+    ("user_id", "Unique identifier for the customer."),
+    ("signup_time", "Timestamp when the account was created."),
+    ("purchase_time", "Timestamp when the transaction happened."),
+    ("purchase_value", "Dollar value of the transaction."),
+    ("device_id", "Identifier for the device used to purchase."),
+    ("source", "Traffic source such as SEO or Ads."),
+    ("browser", "Browser used during the transaction."),
+    ("sex", "Customer gender field from the dataset."),
+    ("age", "Customer age."),
+    ("ip_address", "Original IP address used for the transaction."),
+    ("class", "Fraud target label in the raw dataset."),
+]
+
+ECOMMERCE_ENGINEERED_FEATURES = [
+    ("country", "Derived by mapping IP ranges to countries for geolocation analysis."),
+    ("hour_of_day", "Hour extracted from purchase time."),
+    ("day_of_week", "Weekday extracted from purchase time."),
+    ("time_since_signup_hours", "Hours between signup and purchase."),
+    ("time_since_signup_days", "Days between signup and purchase."),
+    ("transaction_count", "Transaction frequency per user."),
+    ("user_average_purchase", "Average purchase value for the same user."),
+    ("device_shared_users", "How many users share the same device."),
+    ("seconds_since_previous_purchase", "Gap from the previous transaction for that user."),
+    ("purchase_value_to_user_mean", "Current purchase value relative to the user's average."),
+    ("velocity", "Purchase value divided by time since signup."),
+]
+
+CREDITCARD_FEATURES = [
+    ("Time", "Elapsed seconds since the first transaction in the dataset."),
+    ("V1-V28", "Anonymized PCA-transformed input features."),
+    ("Amount", "Transaction amount in dollars."),
+    ("Class", "Fraud target label in the raw dataset."),
+]
+
+
 def load_json(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as handle:
         return json.load(handle)
@@ -49,6 +85,40 @@ def align_features(frame: pd.DataFrame, expected_columns: list[str]) -> pd.DataF
         if column not in aligned.columns:
             aligned[column] = pd.NA
     return aligned[expected_columns]
+
+
+def render_feature_catalog(dataset_name: str, report: dict) -> None:
+    st.subheader("Feature Catalog")
+
+    if dataset_name == "ecommerce_fraud":
+        source_df = pd.DataFrame(ECOMMERCE_SOURCE_FEATURES, columns=["feature", "description"])
+        engineered_df = pd.DataFrame(ECOMMERCE_ENGINEERED_FEATURES, columns=["feature", "description"])
+
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("**Raw Task-Document Fields**")
+            st.dataframe(source_df, use_container_width=True, hide_index=True)
+        with col2:
+            st.markdown("**Engineered Fraud Features**")
+            st.dataframe(engineered_df, use_container_width=True, hide_index=True)
+
+        st.caption(
+            "The dashboard model uses the engineered features, including transaction frequency, velocity, "
+            "hour_of_day, day_of_week, time_since_signup, and IP-to-country mapping requested in the task document."
+        )
+        return
+
+    feature_rows = []
+    for feature_name, description in CREDITCARD_FEATURES:
+        if feature_name == "V1-V28":
+            for index in range(1, 29):
+                feature_rows.append((f"V{index}", description))
+        else:
+            feature_rows.append((feature_name, description))
+
+    credit_df = pd.DataFrame(feature_rows, columns=["feature", "description"])
+    st.dataframe(credit_df, use_container_width=True, hide_index=True)
+    st.caption("The credit-card workflow uses the original anonymized task-document features plus Amount and Time.")
 
 
 def render_summary(dataset_name: str, report: dict) -> None:
@@ -166,6 +236,7 @@ def main() -> None:
     report = load_json(report_path)
 
     render_summary(dataset_name, report)
+    render_feature_catalog(dataset_name, report)
     render_plots(report)
 
     st.subheader("Model Comparison")
