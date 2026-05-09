@@ -3,6 +3,8 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.pytest_cache/
+.mypy_cache/
 .env
 venv/
 .envrc
@@ -10,14 +12,23 @@ venv/
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints
 
-# Data files (avoid large raw data unless needed)
-data/raw/
-# but you can include data/processed/ if small enough
+# Local environments
+.venv/
 
 # VSCode / IDEs
 .vscode/
 .idea/
 
+# Data and generated artifacts
+data/
+artifacts/
+reports/
+trained_models/
+*.joblib
+*.pkl
+*.png
+*.html
+*.json
+
 # MacOS
 .DS_Store
-.venv/
