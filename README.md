@@ -1,6 +1,6 @@
 # FraudPulse
 
-FraudPulse is an end-to-end fraud analytics project for the 10 Academy Week 8 and 9 challenge: improving fraud detection for e-commerce and bank transactions. The project now runs as a Python application, trains both required models, produces evaluation artifacts, generates SHAP-based explainability outputs, and includes a Streamlit dashboard for interactive review and batch scoring.
+FraudPulse is an end-to-end fraud analytics project focused on improving fraud detection for e-commerce and bank transactions. The project now runs as a Python application, trains both required models, produces evaluation artifacts, generates SHAP-based explainability outputs, and includes a Streamlit dashboard for interactive review and batch scoring.
 
 ## Challenge Context
 
@@ -9,7 +9,7 @@ The business goal is to help Adey Innovations Inc. detect fraudulent activity mo
 - E-commerce transactions with user behavior, device information, and geolocation signals.
 - Bank credit-card transactions with anonymized PCA features and severe class imbalance.
 
-The project is designed around the challenge requirements:
+The project is designed around the core fraud-detection workflow:
 
 - Clean and preprocess the raw data.
 - Engineer fraud-oriented features such as time since signup, transaction velocity, and geolocation.
@@ -176,7 +176,7 @@ pip install -r requirements.txt
 
 ### 4. Add the datasets
 
-Place the challenge CSV files inside the local `data/` folder:
+Place the required CSV files inside the local `data/` folder:
 
 ```text
 data/
@@ -259,7 +259,7 @@ This is why FraudPulse selects the winning model using AUC-PR first rather than 
 
 ## Deliverables Alignment
 
-This repository supports the challenge deliverables by providing:
+This repository is structured to provide:
 
 - Reproducible preprocessing and feature engineering code
 - Model comparison and justification
@@ -280,7 +280,6 @@ If SHAP output is missing, verify that the environment installed all packages fr
 
 ## References
 
-- 10 Academy Artificial Intelligence Mastery, Week 8 and 9 Challenge
 - Kaggle Credit Card Fraud Detection dataset
 - Kaggle Fraud E-commerce dataset
 - SHAP documentation
