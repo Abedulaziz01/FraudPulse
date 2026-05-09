@@ -20,6 +20,10 @@ The project is designed around the challenge requirements:
 
 ## Architecture
 
+FraudPulse is structured as a reproducible analytics system rather than a notebook-only experiment. The design separates data preparation, modeling, artifact generation, and presentation so the same project can support exploration, evaluation, and demonstration.
+
+### System Flow
+
 ```mermaid
 flowchart TD
     A[Raw CSV files] --> B[Data cleaning]
@@ -32,6 +36,27 @@ flowchart TD
     F --> I[Streamlit dashboard]
     G --> I
     H --> I
+```
+
+### Architecture Breakdown
+
+- `Data layer`: local CSV datasets for e-commerce fraud, IP-to-country mapping, and credit-card fraud transactions.
+- `Processing layer`: cleaning utilities normalize types, handle duplicates, repair missing values, and prepare each dataset for analysis.
+- `Feature layer`: the fraud dataset is enriched with geolocation, behavioral, and time-based features to capture suspicious transaction patterns.
+- `Model layer`: Logistic Regression and Random Forest are trained and compared using a reproducible preprocessing-and-balancing workflow.
+- `Evaluation layer`: metrics, confusion matrices, ROC curves, PR curves, feature-importance tables, and SHAP outputs are written as reusable artifacts.
+- `Application layer`: the Streamlit dashboard reads saved reports and models to provide inspection, comparison, and batch scoring.
+
+### Component View
+
+```text
+Raw Data
+  -> DataCleaner
+  -> FeatureEngineer
+  -> Pipeline Orchestrator
+  -> Model Trainer and Evaluator
+  -> Saved Artifacts
+  -> Streamlit Dashboard
 ```
 
 ## Repository Layout
@@ -188,7 +213,13 @@ artifacts/project_manifest.json
 Start the dashboard after the training pipeline has completed:
 
 ```bash
-streamlit run streamlit_app.py
+python -m streamlit run streamlit_app.py
+```
+
+If `python` maps to a different interpreter on your machine, you can also use:
+
+```bash
+py -m streamlit run streamlit_app.py
 ```
 
 The dashboard allows you to:
