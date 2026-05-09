@@ -1,198 +1,267 @@
-# 🚦 FraudPulse
+# FraudPulse
 
-## 🚀 Project Overview
+FraudPulse is an end-to-end fraud analytics project for the 10 Academy Week 8 and 9 challenge: improving fraud detection for e-commerce and bank transactions. The project now runs as a Python application, trains both required models, produces evaluation artifacts, generates SHAP-based explainability outputs, and includes a Streamlit dashboard for interactive review and batch scoring.
 
-**FraudPulse** is a fraud detection project for e-commerce and banking transactions.
-The goal is to accurately identify fraudulent transactions by analyzing complex transaction data, engineering meaningful features, and applying robust machine learning models — all while addressing the challenge of highly imbalanced datasets.
+## Challenge Context
 
-This repository contains the complete pipeline for:
+The business goal is to help Adey Innovations Inc. detect fraudulent activity more accurately across two different transaction environments:
 
-* ✅ **Task 1:** Data Analysis and Preprocessing
-* ✅ **Task 2:** Model Building and Evaluation
-* 🔜 **Task 3:** Model Explainability with SHAP
+- E-commerce transactions with user behavior, device information, and geolocation signals.
+- Bank credit-card transactions with anonymized PCA features and severe class imbalance.
 
----
+The project is designed around the challenge requirements:
 
-## 📁 Dataset Description
+- Clean and preprocess the raw data.
+- Engineer fraud-oriented features such as time since signup, transaction velocity, and geolocation.
+- Handle class imbalance with SMOTE on the training split only.
+- Train and compare Logistic Regression and Random Forest models.
+- Evaluate models with imbalance-aware metrics such as AUC-PR, F1-score, precision, recall, and confusion matrices.
+- Interpret the best model for each dataset using SHAP.
 
-The project uses the following datasets:
+## Architecture
 
-* `Fraud_Data.csv` — E-commerce transactions with user, device, purchase, and IP details, labeled as fraud or legitimate.
-* `IpAddress_to_Country.csv` — IP address ranges mapped to countries for geolocation analysis.
-* `creditcard.csv` — Bank credit card transactions dataset with anonymized features for fraud detection.
-
-Raw data files are stored in **`data/raw/`**.
-Processed and cleaned data are saved in **`data/processed/`**.
-
----
-
-## 📂 Repository Structure
-
+```mermaid
+flowchart TD
+    A[Raw CSV files] --> B[Data cleaning]
+    B --> C[Fraud feature engineering]
+    C --> D[Train/test split]
+    D --> E[Model pipelines with preprocessing and SMOTE]
+    E --> F[Model evaluation reports]
+    E --> G[Saved model artifacts]
+    E --> H[SHAP explainability outputs]
+    F --> I[Streamlit dashboard]
+    G --> I
+    H --> I
 ```
+
+## Repository Layout
+
+```text
 FraudPulse/
-├── .github/workflows/         # CI workflow files
-├── data/
-│   ├── raw/                   # Original raw datasets (unmodified)
-│   └── processed/             # Cleaned & feature-engineered datasets
-├── notebooks/                 # Jupyter notebooks for EDA, preprocessing, explainability
-├── scripts/                   # Python scripts for preprocessing & training
-├── models/                    # Saved models & scalers
-├── .gitignore                 # Git ignore rules
-├── requirements.txt           # Python dependencies
-└── README.md                  # Project documentation
+|-- .github/workflows/        CI configuration
+|-- data/                     Local datasets only, ignored by git
+|-- notebooks/                Original exploration notebooks
+|-- plots/                    Legacy plot outputs from earlier work
+|-- src/
+|   |-- __init__.py
+|   |-- data_cleaning.py
+|   |-- eda.py
+|   |-- feature_engineering.py
+|   |-- modeling.py
+|   |-- pipeline.py
+|   `-- preprocess_fraud_data.py
+|-- streamlit_app.py          Interactive dashboard
+|-- requirements.txt
+`-- README.md
 ```
 
----
+## Datasets
 
-## 🛠️ Setup Instructions
+The project expects these files in `data/`:
 
-1. **Clone this repository**
+- `Fraud_Data.csv`
+- `IpAddress_to_Country.csv`
+- `creditcard.csv`
 
-   ```bash
-   git clone https://github.com/yourusername/FraudPulse.git
-   cd FraudPulse
-   ```
+The current workspace also supports the nested credit-card path `data/creditcard.csv/creditcard.csv` because that structure already exists locally.
 
-2. **Create a virtual environment**
+Note: raw data is intentionally ignored by git so the repository stays lightweight and can be shared without shipping datasets.
 
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   ```
+## Feature Engineering Strategy
 
-3. **Install dependencies**
+### E-commerce Fraud Data
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+The pipeline creates business-relevant signals from the original transaction records:
 
-4. **Place raw dataset files**
-   Place `Fraud_Data.csv`, `IpAddress_to_Country.csv`, and `creditcard.csv` inside **`data/raw/`**.
+- `hour_of_day`
+- `day_of_week`
+- `time_since_signup_hours`
+- `time_since_signup_days`
+- `transaction_count`
+- `user_average_purchase`
+- `device_shared_users`
+- `seconds_since_previous_purchase`
+- `purchase_value_to_user_mean`
+- `velocity`
+- `country` derived from IP range mapping
 
-5. **Run notebooks or scripts**
+These features are intended to capture suspicious timing, repeat behavior, device reuse, and unusual purchase intensity.
 
-   ```bash
-   jupyter notebook notebooks/01_fraud_data_eda_preprocessing.ipynb
-   ```
+### Credit Card Data
 
----
+The credit-card dataset is already heavily transformed. The pipeline keeps the provided PCA-based features, fills missing values, scales the numeric space, and trains imbalance-aware classifiers without changing the semantic structure of the original data.
 
-## ✅ **1️⃣ Task 1: Data Analysis & Preprocessing**
+## Modeling Approach
 
-This task covers:
+Two models are trained on each dataset:
 
-* Univariate & bivariate EDA to discover fraud patterns.
-* Handling missing values, duplicates, and type corrections.
-* Merging IP geolocation data.
-* Feature engineering:
+1. Logistic Regression as the interpretable baseline.
+2. Random Forest as the stronger ensemble benchmark.
 
-  * Geolocation mapping.
-  * Time-based features: `time_since_signup`, `hour_of_day`, `day_of_week`.
-  * Transaction frequency and velocity.
-* Addressing class imbalance with techniques like SMOTE.
-* Scaling numeric features and encoding categorical features.
-* Saving final, ready-to-train datasets.
+Each model is wrapped in an imbalanced-learning pipeline that includes:
 
----
+- Missing-value imputation
+- Standard scaling for numeric features
+- One-hot encoding for categorical fraud features
+- SMOTE oversampling on the training split only
+- Final classifier training
 
-## ✅ **2️⃣ Task 2: Model Building & Evaluation**
+The best model is selected primarily by AUC-PR, then F1-score, ROC AUC, and precision.
 
-This task is **complete** and includes:
+## Explainability
 
-* Loading processed datasets.
-* Building and comparing **Logistic Regression** (baseline) and a **powerful ensemble model** (Random Forest for Fraud\_Data, XGBoost for creditcard.csv).
-* Training on both **Fraud\_Data** and **creditcard.csv**.
-* Evaluating using robust metrics for imbalanced data: Confusion Matrix, ROC AUC, AUC-PR, Precision, Recall, F1-Score.
-* Saving the best-performing models for the next step.
+FraudPulse generates SHAP explainability outputs for the best saved model of each dataset when the `shap` package is available. The pipeline writes:
 
----
+- SHAP summary plot images
+- Feature-importance CSV files
+- Dataset-level JSON reports that the dashboard can read
 
-## 📝 **Key Insights (so far)**
+If SHAP is not available in the environment, the training pipeline still completes and falls back to model-based feature-importance tables.
 
-* The fraud label is extremely imbalanced (\~9.4% fraud).
-* Fraudulent transactions cluster around certain purchase values, time delays, and user behaviors.
-* IP geolocation reveals country-based fraud patterns.
-* Certain transaction times and signup behaviors are linked with higher fraud risk.
+## Setup
 
-(For full visualizations and interpretations, see the `notebooks/`.)
+### 1. Clone the repository
 
+```bash
+git clone <your-repository-url>
+cd FraudPulse
+```
 
-# Model Comparison & Justification
+### 2. Create and activate a virtual environment
 
-This document outlines the performance comparison between **Logistic Regression** and **Random Forest** models on two datasets:  
-1. **Credit Card Fraud Dataset (`creditcard.csv`)**  
-2. **E-commerce Fraud Dataset (`Fraud_Data.csv`)**  
+Windows PowerShell:
 
-Based on the evaluation metrics, the best-performing model for each dataset is selected.
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+```
 
----
+macOS or Linux:
 
-## 📊 **Credit Card Dataset (`creditcard.csv`)**  
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
 
-| Metric               | Logistic Regression | Random Forest |
-|----------------------|---------------------|---------------|
-| **ROC AUC**          | 0.967               | 0.969         |
-| **AUC-PR**           | 0.706               | 0.828         |
-| **F1-Score**         | 0.12                | 0.83          |
-| **Recall (Fraud)**   | 0.88                | 0.78          |
-| **Precision (Fraud)**| 0.06                | 0.89          |
+### 3. Install dependencies
 
-### **Insight:**  
-- **Logistic Regression** achieves high recall (88%) but suffers from extremely low precision (6%), leading to many false positives.  
-- **Random Forest** provides a better balance:  
-  - High precision (**89%**)  
-  - Strong recall (**78%**)  
-  - Better **F1-Score (0.83)** and **AUC-PR (0.828)**  
+```bash
+pip install -r requirements.txt
+```
 
-### **Final Choice:** ✅ **Random Forest**  
-> Handles class imbalance more robustly, reducing false positives while maintaining strong fraud detection.  
+### 4. Add the datasets
 
----
+Place the challenge CSV files inside the local `data/` folder:
 
-## 🛒 **E-commerce Dataset (`Fraud_Data.csv`)**  
+```text
+data/
+|-- Fraud_Data.csv
+|-- IpAddress_to_Country.csv
+`-- creditcard.csv
+```
 
-| Metric               | Logistic Regression | Random Forest |
-|----------------------|---------------------|---------------|
-| **ROC AUC**          | 0.772               | 0.771         |
-| **AUC-PR**           | 0.632               | 0.628         |
-| **F1-Score**         | 0.69                | 0.60          |
-| **Recall (Fraud)**   | 0.54                | 0.55          |
-| **Precision (Fraud)**| 0.96                | 0.66          |
+## How To Run The Project
 
-### **Insight:**  
-- **Logistic Regression** slightly outperforms Random Forest in:  
-  - **AUC-PR (0.632 vs. 0.628)**  
-  - **F1-Score (0.69 vs. 0.60)**  
-- It also achieves **much higher precision (96% vs. 66%)** with similar recall (~55%).  
+Run the full training pipeline from the repository root:
 
-### **Final Choice:** ✅ **Logistic Regression**  
-> Provides clearer separation of fraudulent transactions with fewer false positives.  
+```bash
+python -m src.preprocess_fraud_data --data-dir data --artifact-dir artifacts
+```
 
----
+What this command does:
 
-## ✅ **Summary of Best Models**  
-| Dataset                  | Best Model         | Key Reason                          |
-|--------------------------|--------------------|-------------------------------------|
-| `creditcard.csv`         | **Random Forest**  | Better precision-recall trade-off   |
-| `Fraud_Data.csv`         | **Logistic Regression** | Higher precision & F1-Score    |
----
+- Loads and cleans both datasets
+- Engineers fraud features
+- Splits train and test data
+- Trains Logistic Regression and Random Forest models
+- Evaluates each model
+- Saves plots, JSON reports, and trained model files under `artifacts/`
 
+When the run finishes, the main dashboard manifest will be created at:
 
-## 🔜 **3️⃣ Task 3: Model Explainability**
+```text
+artifacts/project_manifest.json
+```
 
-Next up:
+## How To Run Streamlit
 
-* Load the best saved models.
-* Use **SHAP (Shapley Additive Explanations)** to interpret global & local feature importance.
-* Generate SHAP **Summary Plots** and **Force Plots** to reveal which features drive fraud predictions.
-* Document insights to understand what behaviors or attributes signal potential fraud.
+Start the dashboard after the training pipeline has completed:
 
-## ✅ **Next Steps**
+```bash
+streamlit run streamlit_app.py
+```
 
-* Complete Task 3: Explain the best models using SHAP.
-* Finalize and deliver a comprehensive report with visuals and recommendations.
+The dashboard allows you to:
 
----
+- Review the best model for each dataset
+- Compare Logistic Regression and Random Forest metrics
+- Inspect confusion matrix, ROC, PR, and SHAP outputs
+- Upload a CSV file for batch scoring using the saved best model
 
+## Expected Output Structure
 
-**Let’s detect fraud — one transaction at a time! 🚦✨**
+After running the training pipeline, you should see a structure similar to this:
+
+```text
+artifacts/
+|-- project_manifest.json
+|-- ecommerce_fraud/
+|   |-- models/
+|   |-- plots/
+|   `-- reports/
+`-- credit_card_fraud/
+    |-- models/
+    |-- plots/
+    `-- reports/
+```
+
+## Evaluation Philosophy
+
+Fraud detection is not a plain accuracy problem. The project emphasizes metrics that reflect the real business trade-off:
+
+- High precision reduces customer friction from false alarms.
+- High recall reduces missed fraud losses.
+- AUC-PR is especially important because both datasets are highly imbalanced.
+- F1-score helps compare the balance between precision and recall.
+
+This is why FraudPulse selects the winning model using AUC-PR first rather than defaulting to raw accuracy.
+
+## Deliverables Alignment
+
+This repository supports the challenge deliverables by providing:
+
+- Reproducible preprocessing and feature engineering code
+- Model comparison and justification
+- Explainability artifacts for final reporting
+- A professional README with setup and run instructions
+- A dashboard for visual review and demonstration
+
+## Troubleshooting
+
+If the training script cannot find the credit-card dataset, check whether your file is stored as:
+
+- `data/creditcard.csv`
+- `data/creditcard.csv/creditcard.csv`
+
+If the dashboard starts but shows a warning, run the training pipeline first so `artifacts/project_manifest.json` is created.
+
+If SHAP output is missing, verify that the environment installed all packages from `requirements.txt`, then rerun the pipeline.
+
+## References
+
+- 10 Academy Artificial Intelligence Mastery, Week 8 and 9 Challenge
+- Kaggle Credit Card Fraud Detection dataset
+- Kaggle Fraud E-commerce dataset
+- SHAP documentation
+- scikit-learn documentation
+- imbalanced-learn documentation
+
+## Project Status
+
+Current scope:
+
+- Task 1: Implemented in Python modules
+- Task 2: Implemented in a reproducible training pipeline
+- Task 3: Implemented with SHAP-driven explainability outputs
+
+FraudPulse is now structured as a runnable project instead of a notebook-only repository.
