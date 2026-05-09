@@ -26,6 +26,7 @@ trained_models/
 *.png
 *.html
 *.json
+!screencapture-of the streamlit app.png
 
 # MacOS
 .DS_Store

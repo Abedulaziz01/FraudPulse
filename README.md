@@ -2,6 +2,10 @@
 
 FraudPulse is an end-to-end fraud analytics project focused on improving fraud detection for e-commerce and bank transactions. The project now runs as a Python application, trains both required models, produces evaluation artifacts, generates SHAP-based explainability outputs, and includes a Streamlit dashboard for interactive review and batch scoring.
 
+## Dashboard Preview
+
+![FraudPulse Streamlit Dashboard](<screencapture-of the streamlit app.png>)
+
 ## Challenge Context
 
 The business goal is to help Adey Innovations Inc. detect fraudulent activity more accurately across two different transaction environments:
